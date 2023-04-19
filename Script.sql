@@ -13,7 +13,7 @@ IF OBJECT_ID ('cupon_reclamo') IS NOT NULL DROP TABLE cupon_reclamo;
 IF OBJECT_ID ('estado_reclamo') IS NOT NULL DROP TABLE estado_reclamo;
 IF OBJECT_ID ('movilidad') IS NOT NULL DROP TABLE movilidad;
 IF OBJECT_ID ('direccion_x_usuario') IS NOT NULL DROP TABLE direccion_x_usuario;
-IF OBJECT_ID ('Localidad') IS NOT NULL DROP TABLE Localidad;
+IF OBJECT_ID ('localidad') IS NOT NULL DROP TABLE localidad;
 IF OBJECT_ID ('local') IS NOT NULL DROP TABLE local;
 IF OBJECT_ID ('tipo_local') IS NOT NULL DROP TABLE tipo_local;
 IF OBJECT_ID ('medio_de_pago') IS NOT NULL DROP TABLE medio_de_pago;
@@ -21,7 +21,7 @@ IF OBJECT_ID ('producto') IS NOT NULL DROP TABLE producto;
 IF OBJECT_ID ('estado_pedido') IS NOT NULL DROP TABLE estado_pedido;
 IF OBJECT_ID ('usuario') IS NOT NULL DROP TABLE usuario;
 IF OBJECT_ID ('tipo_cupon') IS NOT NULL DROP TABLE tipo_cupon;
-IF OBJECT_ID ('Localidad') IS NOT NULL DROP TABLE Localidad;
+IF OBJECT_ID ('localidad') IS NOT NULL DROP TABLE localidad;
 IF OBJECT_ID ('envio') IS NOT NULL DROP TABLE envio;
 IF OBJECT_ID ('EstadoMensajeria') IS NOT NULL DROP TABLE EstadoMensajeria;
 IF OBJECT_ID ('Mensajeria') IS NOT NULL DROP TABLE Mensajeria;
@@ -37,12 +37,12 @@ GO
 IF EXISTS(	select
 		*
 	from sys.sysobjects
-	where xtype = 'P' and name like '%migrar_%'
+	where xtype = 'P' and name like 'migrar_%'
 	)
 	BEGIN
 	
 	
-	PRINT 'Existen procedures de una ejecuci�n pasada'
+	PRINT 'Existen procedures de una ejecucion pasada'
 	PRINT 'Se procede a borrarlos...'
 
 	DECLARE @sql NVARCHAR(MAX) = N'';
@@ -51,7 +51,7 @@ IF EXISTS(	select
 	DROP PROCEDURE '
 	  + QUOTENAME(name) + ';'
 	FROM sys.sysobjects
-	WHERE xtype = 'P' and name like '%migrar_%'
+	WHERE xtype = 'P' and name like 'migrar_%'
 
 	--PRINT @sql;
 
@@ -70,14 +70,21 @@ CREATE TABLE [medio_de_pago] (
   [tipo_medio_pago] nvarchar(50),
   PRIMARY KEY ([id_medio_pago])
 );
---FALTA STORED PROCEDURE
+
+CREATE TABLE [localidad] (
+  [id_localidad] int IDENTITY(1,1),
+  [nombre] nvarchar(255),
+  PRIMARY KEY ([id_localidad])
+);
+
+
 CREATE TABLE [direccion] (
   [id_direccion] int IDENTITY(1,1),
-  [nombre] nvarchar(50),
+  [nombre] nvarchar(50) null,
   [direccion] nvarchar(255),
   [provincia] nvarchar(255),
   [localidad] nvarchar(255),
-  PRIMARY KEY ([id_direccion])
+  PRIMARY KEY ([id_direccion]),
 );
 --FALTA STORED PROCEDURE
 CREATE TABLE [producto] (
@@ -103,6 +110,7 @@ CREATE TABLE [tipo_local] (
   PRIMARY KEY ([id_tipo_local])
 );
 
+--FALTA STORED PROCEDURE
 CREATE TABLE [local] (
   [id_local] int IDENTITY(1,1),
   [id_tipo_local] int,
@@ -135,15 +143,6 @@ CREATE TABLE [movilidad] (
   [tipo_movilidad] nvarchar(50),
   PRIMARY KEY ([id_movilidad])
 );
-
-
-CREATE TABLE [Localidad] (
-  [id_localidad] int IDENTITY(1,1),
-  [nombre] nvarchar(255),
-  PRIMARY KEY ([id_localidad])
-);
-
-
 CREATE TABLE [repartidor] (
   [id_repartidor] int IDENTITY(1,1),
   [id_localidad] int,
@@ -161,27 +160,25 @@ CREATE TABLE [repartidor] (
       REFERENCES [movilidad]([id_movilidad]),
   CONSTRAINT [FK_repartidor.id_localidad]
     FOREIGN KEY ([id_localidad])
-      REFERENCES [Localidad]([id_localidad])
+      REFERENCES [localidad]([id_localidad])
 );
-
 CREATE TABLE [envio] (
   [id_envio] int IDENTITY(1,1),
   [id_repartidor] int,
-  [id_direccion] int,
+  [id_direccion_x_usuario] int,
   [precio_envio] decimal(18,2),
   [propina] decimal(18,2),
   [tiempo_estimado_entrega] decimal(18,2),
   [calificacion] decimal(18,0),
   PRIMARY KEY ([id_envio]),
   CONSTRAINT [FK_envio.id_direccion]
-    FOREIGN KEY ([id_direccion])
+    FOREIGN KEY ([id_direccion_x_usuario])
       REFERENCES [direccion]([id_direccion]),
   CONSTRAINT [FK_envio.id_repartidor]
     FOREIGN KEY ([id_repartidor])
       REFERENCES [repartidor]([id_repartidor])
 );
-
-
+--FALTA STORED PROCEDURE
 CREATE TABLE [Pedido] (
   [nro_pedido] decimal(18,2),
   [id_estado_pedido] int,
@@ -214,14 +211,11 @@ CREATE TABLE [Pedido] (
     FOREIGN KEY ([id_usuario])
       REFERENCES [envio]([id_envio])
 );
-
-
 CREATE TABLE [tipo_cupon] (
   [id_tipo_cupon] int IDENTITY(1,1),
   [tipo] nvarchar(50),
   PRIMARY KEY ([id_tipo_cupon])
 );
-
 CREATE TABLE [cupon_descuento] (
   [id_cupon_descuento] int IDENTITY(1,1),
   [nro_cupon] decimal(18,0),
@@ -404,9 +398,10 @@ CREATE TABLE [reclamo] (
       REFERENCES [cupon_reclamo]([nro_cupon_reclamo])
 );
 
-GO
 
-CREATE PROCEDURE migrar_tipo_local
+--VERIFICADA
+GO
+CREATE PROCEDURE migrar_tipo_local 
 AS 
 BEGIN
 	INSERT INTO tipo_local(tipo_local)
@@ -421,8 +416,8 @@ BEGIN
 	PRINT('TIPO LOCAL OK!')
 END
 
+--VERIFICADA
 GO
-
 CREATE PROCEDURE migrar_estado_pedido
 AS 
 BEGIN
@@ -438,8 +433,8 @@ BEGIN
 	PRINT('ESTADO PEDIDO OK!')
 END
 
+--VERIFICADA
 GO
-
 CREATE PROCEDURE migrar_medio_pago
 AS 
 BEGIN
@@ -454,26 +449,29 @@ BEGIN
 	ELSE
 	PRINT('MEDIO_PAGO_TIPO OK!')
 END
+
+--VERIFICADA
 GO
 CREATE PROCEDURE migrar_usuario
 AS 
 BEGIN
 	INSERT INTO usuario(nombre, apellido, dni, telefono, fecha_registro, fecha_nacimiento, mail)
 	SELECT DISTINCT
-		usuario_NOMBRE as nombre,
-        usuario_APELLIDO as apellido,
-        usuario_DNI as dni,
-        usuario_TELEFONO as telefono,
-        usuario_FECHA_REGISTRO as fecha_registro,
-        usuario_FECHA_NAC as fecha_nacimiento,
-        usuario_MAIL as mail
+		USUARIO_NOMBRE as nombre,
+        USUARIO_APELLIDO as apellido,
+        USUARIO_DNI as dni,
+        USUARIO_TELEFONO as telefono,
+        USUARIO_FECHA_REGISTRO as fecha_registro,
+        USUARIO_FECHA_NAC as fecha_nacimiento,
+        USUARIO_MAIL as mail
 	FROM gd_esquema.Maestra
-	WHERE usuario_NOMBRE is not null and
-    usuario_APELLIDO is not null and
-    usuario_DNI is not null and
-    usuario_FECHA_REGISTRO is not null and
-    usuario_FECHA_NAC is not null and
-    usuario_MAIL is not null 
+	WHERE USUARIO_NOMBRE is not null and
+    USUARIO_APELLIDO is not null and
+    USUARIO_DNI is not null and
+    USUARIO_FECHA_REGISTRO is not null and
+    USUARIO_FECHA_NAC is not null and
+	USUARIO_TELEFONO is not null and
+    USUARIO_MAIL is not null 
 
 	IF @@ERROR != 0
 	PRINT('usuario FAIL!')
@@ -481,6 +479,7 @@ BEGIN
 	PRINT('usuario OK!')
 END
 
+--VERIFICADA
 GO
 CREATE PROCEDURE migrar_tipo_cupon
 AS 
@@ -496,36 +495,40 @@ BEGIN
 	PRINT('tipo_cupon OK!')
 END
 
+--VERIFICADA
 GO
 CREATE PROCEDURE migrar_movilidad
 AS 
 BEGIN
 	INSERT INTO movilidad(tipo_movilidad)
 	SELECT DISTINCT
-		repartidor_TIPO_MOVILIDAD as movilidad
+		REPARTIDOR_TIPO_MOVILIDAD as movilidad
 	FROM gd_esquema.Maestra
-	WHERE repartidor_TIPO_MOVILIDAD is not null 
+	WHERE REPARTIDOR_TIPO_MOVILIDAD is not null 
 	IF @@ERROR != 0
 	PRINT('movilidad FAIL!')
 	ELSE
 	PRINT('movilidad OK!')
 END
+
+--VERIFICADA
 GO
 CREATE PROCEDURE migrar_localidad
 AS 
 BEGIN
 	INSERT INTO localidad(nombre)
-	(SELECT DISTINCT
-		ENVIO_MENSAJERIA_LOCALIDAD as nombre FROM gd_esquema.Maestra WHERE ENVIO_MENSAJERIA_LOCALIDAD is not null) 
-        UNION
-        	(SELECT DISTINCT
-		LOCAL_LOCALIDAD as nombre FROM gd_esquema.Maestra WHERE LOCAL_LOCALIDAD is not null) 
+	(SELECT DISTINCT ENVIO_MENSAJERIA_LOCALIDAD as nombre FROM gd_esquema.Maestra WHERE ENVIO_MENSAJERIA_LOCALIDAD is not null)
+    UNION 
+    (SELECT DISTINCT DIRECCION_USUARIO_LOCALIDAD as nombre FROM gd_esquema.Maestra WHERE DIRECCION_USUARIO_LOCALIDAD is not null)
+	UNION 
+    (SELECT DISTINCT LOCAL_LOCALIDAD as nombre FROM gd_esquema.Maestra WHERE LOCAL_LOCALIDAD is not null)
 	IF @@ERROR != 0
 	PRINT('localidad FAIL!')
 	ELSE
 	PRINT('localidad OK!')
 END
 
+--VERIFICADA
 GO
 CREATE PROCEDURE migrar_cupon_descuento
 AS 
@@ -551,6 +554,160 @@ BEGIN
 	PRINT('cupon_descuento OK!')
 END
 
+-- POR VERIFICAR
+GO
+CREATE PROCEDURE migrar_repartidor -- En grupo de google dijeron que quizas falta el repartidor_localidad, como estan los datos ahora en la tabla maestra hay datos que hacen referencia a mas de una localidad por repartidor, hay localidades activas e inactivas?Se toma la localidad del ultimo envio que realizo el repartidor?
+AS 
+BEGIN
+	INSERT INTO repartidor(id_localidad, id_movilidad, nombre_repartidor, apellido_repartidor, dni, telefono, direccion, email,fecha_nacimiento)
+    SELECT DISTINCT
+        l.id_localidad  as id_localidad,
+        m.id_movilidad as id_movilidad,
+        REPARTIDOR_NOMBRE as nombre_repartidor,
+        REPARTIDOR_APELLIDO as apellido_repartidor,
+        REPARTIDOR_DNI as dni, 
+        REPARTIDOR_TELEFONO as telefono,
+        REPARTIDOR_DIRECION as direccion, 
+		REPARTIDOR_EMAIL as email, 
+        REPARTIDOR_FECHA_NAC as fecha_nacimiento
+    FROM gd_esquema.Maestra
+    JOIN movilidad m
+    on m.tipo_movilidad = REPARTIDOR_TIPO_MOVILIDAD
+    JOIN localidad l
+    on l.nombre = LOCAL_LOCALIDAD --Segun lo que se hablo en el grupo de google, se tiene que hacer con LOCAL_LOCALIDAD, lo que no esta claro por que hay mas de una localidad por repartidor con esa columna.
+	WHERE LOCAL_LOCALIDAD is not null 
+	and REPARTIDOR_TIPO_MOVILIDAD is not null
+	and REPARTIDOR_NOMBRE is not null
+    and REPARTIDOR_APELLIDO is not null
+    and REPARTIDOR_DNI is not null
+    and REPARTIDOR_TELEFONO is not null
+    and REPARTIDOR_DIRECION is not null
+    and REPARTIDOR_EMAIL is not null
+    and REPARTIDOR_FECHA_NAC is not null
+	IF @@ERROR != 0
+	PRINT('repartidor FAIL!')
+	ELSE
+	PRINT('repartidor OK!')
+END
+
+--VERIFICADA, vale la pena relacionar direccion con la localidad a traves de fk?
+GO
+CREATE PROCEDURE migrar_direccion
+AS 
+BEGIN
+	INSERT INTO direccion(nombre,direccion,provincia,localidad)
+    (SELECT DISTINCT
+        DIRECCION_USUARIO_NOMBRE,
+		DIRECCION_USUARIO_DIRECCION,
+		DIRECCION_USUARIO_PROVINCIA,
+		DIRECCION_USUARIO_LOCALIDAD
+    FROM gd_esquema.Maestra 
+	WHERE DIRECCION_USUARIO_NOMBRE is not null 
+	and DIRECCION_USUARIO_DIRECCION is not null
+	and DIRECCION_USUARIO_PROVINCIA is not null
+    and DIRECCION_USUARIO_LOCALIDAD is not null) UNION
+	    (SELECT DISTINCT
+		null,
+        ENVIO_MENSAJERIA_DIR_DEST,
+		ENVIO_MENSAJERIA_PROVINCIA,
+		ENVIO_MENSAJERIA_LOCALIDAD
+    FROM gd_esquema.Maestra 
+	WHERE ENVIO_MENSAJERIA_DIR_DEST is not null 
+	and ENVIO_MENSAJERIA_PROVINCIA is not null
+    and ENVIO_MENSAJERIA_LOCALIDAD is not null)
+	IF @@ERROR != 0
+	PRINT('direccion FAIL!')
+	ELSE
+	PRINT('direccion OK!')
+END
+
+--VERIFICADA, algunos usuarios tienen mas de una direccion, pero obligatoriamente una.
+GO
+CREATE PROCEDURE migrar_direccion_x_usuario
+AS 
+BEGIN
+	INSERT INTO direccion_x_usuario(id_usuario,id_direccion)
+	SELECT DISTINCT
+		u.id_usuario,
+		d.id_direccion
+    FROM gd_esquema.Maestra
+	JOIN usuario u 
+	on u.dni = USUARIO_DNI
+	JOIN direccion d
+	on d.direccion = DIRECCION_USUARIO_DIRECCION
+	WHERE USUARIO_DNI is not null 
+	and DIRECCION_USUARIO_DIRECCION is not null
+	IF @@ERROR != 0
+	PRINT('direccion_x_usuario FAIL!')
+	ELSE
+	PRINT('direccion_x_usuario OK!')
+END
+
+--POR VERIFICAR
+--TODO: Revisar FK de localidad en direccion, trae mas datos de direccion incoherentes?
+--TODO: Revisar repartidor(tienen mas de una localidad por cada uno, lo que puede traer problemas)
+GO
+CREATE PROCEDURE migrar_envio 
+AS 
+BEGIN
+	INSERT INTO envio(id_repartidor,id_direccion_x_usuario, precio_envio, propina, tiempo_estimado_entrega, calificacion)
+    SELECT DISTINCT
+        r.id_repartidor,
+		du.id_direccion_x_usuario,
+		ENVIO_MENSAJERIA_PRECIO_ENVIO,
+		ENVIO_MENSAJERIA_PROPINA,
+		ENVIO_MENSAJERIA_TIEMPO_ESTIMADO,
+		ENVIO_MENSAJERIA_CALIFICACION
+    FROM gd_esquema.Maestra
+	JOIN direccion d
+	on d.direccion = ENVIO_MENSAJERIA_DIR_DEST
+	JOIN direccion_x_usuario du
+	ON du.id_direccion = d.id_direccion
+	JOIN repartidor r
+	ON r.nombre_repartidor = REPARTIDOR_NOMBRE
+	WHERE ENVIO_MENSAJERIA_PRECIO_ENVIO is not null 
+	and ENVIO_MENSAJERIA_PROPINA is not null
+	and ENVIO_MENSAJERIA_TIEMPO_ESTIMADO is not null
+    and ENVIO_MENSAJERIA_CALIFICACION is not null
+    and REPARTIDOR_NOMBRE is not null
+	and ENVIO_MENSAJERIA_DIR_DEST is not null
+	IF @@ERROR != 0
+	PRINT('envio FAIL!')
+	ELSE
+	PRINT('envio OK!')
+END
+
+GO
+CREATE PROCEDURE migrar_estado_reclamo
+AS 
+BEGIN
+	INSERT INTO estado_reclamo(estado_reclamo)
+	SELECT DISTINCT
+		RECLAMO_ESTADO as estado_reclamo
+	FROM gd_esquema.Maestra
+	WHERE RECLAMO_ESTADO is not null
+
+	IF @@ERROR != 0
+	PRINT('ESTADO RECLAMO FAIL!')
+	ELSE
+	PRINT('ESTADO RECLAMO OK!')
+END
+
+GO
+CREATE PROCEDURE migrar_tipo_reclamo
+AS 
+BEGIN
+	INSERT INTO tipo_reclamo(tipo_reclamo)
+	SELECT DISTINCT
+		RECLAMO_TIPO as tipo_reclamo
+	FROM gd_esquema.Maestra
+	WHERE RECLAMO_TIPO is not null
+
+	IF @@ERROR != 0
+	PRINT('TIPO RECLAMO FAIL!')
+	ELSE
+	PRINT('TIPO RECLAMO OK!')
+END
 
 
 GO
@@ -569,4 +726,16 @@ GO
 EXEC migrar_localidad
 GO
 EXEC migrar_cupon_descuento
+GO
+EXEC migrar_repartidor
+GO
+EXEC migrar_direccion
+GO
+EXEC migrar_direccion_x_usuario
+GO
+EXEC migrar_envio
+GO
+EXEC migrar_estado_reclamo
+GO
+EXEC migrar_tipo_reclamo
 GO
