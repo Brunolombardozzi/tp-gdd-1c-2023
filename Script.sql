@@ -4,10 +4,9 @@ USE [GD1C2023]
 IF OBJECT_ID ('cupon_descuento_x_pedido') IS NOT NULL DROP TABLE cupon_descuento_x_pedido;
 IF OBJECT_ID ('cupon_descuento') IS NOT NULL DROP TABLE cupon_descuento
 IF OBJECT_ID ('localidad_x_repartidor') IS NOT NULL DROP TABLE localidad_x_repartidor;
-IF OBJECT_ID ('mensajeria') IS NOT NULL DROP TABLE mensajeria;
-IF OBJECT_ID ('estado_mensajeria') IS NOT NULL DROP TABLE estado_mensajeria;
 IF OBJECT_ID ('producto_x_pedido') IS NOT NULL DROP TABLE producto_x_pedido;
 IF OBJECT_ID ('cupon_reclamo') IS NOT NULL DROP TABLE cupon_reclamo;
+IF OBJECT_ID ('reclamo_x_pedido') IS NOT NULL DROP TABLE reclamo_x_pedido;
 IF OBJECT_ID ('reclamo') IS NOT NULL DROP TABLE reclamo;
 IF OBJECT_ID ('envio') IS NOT NULL DROP TABLE envio;
 IF OBJECT_ID ('producto_x_local_x_pedido') IS NOT NULL DROP TABLE producto_x_local_x_pedido;
@@ -16,6 +15,8 @@ IF OBJECT_ID ('repartidor') IS NOT NULL DROP TABLE repartidor;
 IF OBJECT_ID ('direccion_x_usuario') IS NOT NULL DROP TABLE direccion_x_usuario;
 IF OBJECT_ID ('direccion') IS NOT NULL DROP TABLE direccion;
 IF OBJECT_ID ('direcciones_mensajeria') IS NOT NULL DROP TABLE direcciones_mensajeria;
+IF OBJECT_ID ('mensajeria') IS NOT NULL DROP TABLE mensajeria;
+IF OBJECT_ID ('estado_mensajeria') IS NOT NULL DROP TABLE estado_mensajeria;
 IF OBJECT_ID ('provincia') IS NOT NULL DROP TABLE provincia;
 IF OBJECT_ID ('localidad') IS NOT NULL DROP TABLE localidad;
 IF OBJECT_ID ('tarjeta') IS NOT NULL DROP TABLE tarjeta;
@@ -266,7 +267,6 @@ CREATE TABLE [reclamo] (
   [id_tipo_reclamo] int,
   [id_estado_reclamo] int,
   [id_operador] int,
-  [id_pedido] int,
   [descripcion] nvarchar(255),
   [fecha_solucion] datetime2(3),
   [fecha] datetime2(3),
@@ -281,8 +281,18 @@ CREATE TABLE [reclamo] (
       REFERENCES [tipo_reclamo]([id_tipo_reclamo]),
   CONSTRAINT [FK_reclamo.id_operador]
     FOREIGN KEY ([id_operador])
-      REFERENCES [operador]([id_operador]),
-  CONSTRAINT [FK_reclamo.id_pedido]
+      REFERENCES [operador]([id_operador])
+);
+
+CREATE TABLE [reclamo_x_pedido] (
+  [id_reclamo_x_pedido] int IDENTITY(1,1),
+  [id_reclamo] int,
+  [id_pedido] int,
+  PRIMARY KEY ([id_reclamo_x_pedido]),
+  CONSTRAINT [FK_reclamo_x_pedido.id_reclamo]
+    FOREIGN KEY ([id_reclamo])
+      REFERENCES [reclamo]([id_reclamo]),
+  CONSTRAINT [FK_reclamo_x_pedido.id_pedido]
     FOREIGN KEY ([id_pedido])
       REFERENCES [Pedido]([id_pedido]),
 );
@@ -369,16 +379,6 @@ CREATE TABLE [tipo_paquete] (
   PRIMARY KEY ([id_tipo_paquete])
 );
 
-CREATE TABLE [direcciones_mensajeria] (
-  [id_direcciones_mensajeria] int IDENTITY(1,1),
-  [direccion_origen] nvarchar(255),
-  [direccion_destino] nvarchar(255),
-  [id_localidad] int,
-  PRIMARY KEY ([id_direcciones_mensajeria]),
-  CONSTRAINT [FK_direcciones_mensajeria.id_localidad]
-   FOREIGN KEY ([id_localidad])
-    REFERENCES [localidad]([id_localidad])
-);
 
 CREATE TABLE [mensajeria] (
   [id_mensajeria] int IDENTITY(1,1),
@@ -414,10 +414,18 @@ CREATE TABLE [mensajeria] (
       REFERENCES [usuario]([id_usuario]),
   CONSTRAINT [FK_mensajeria.id_repartidor]
     FOREIGN KEY ([id_repartidor])
-      REFERENCES [repartidor]([id_repartidor]),
-  CONSTRAINT [FK_mensajeria.id_direcciones]
-    FOREIGN KEY ([id_direcciones_mensajeria])
-      REFERENCES [direcciones_mensajeria]([id_direcciones_mensajeria])
+      REFERENCES [repartidor]([id_repartidor])
+);
+CREATE TABLE [direcciones_mensajeria] (
+  [id_direcciones_mensajeria] int IDENTITY(1,1),
+  [direccion_origen] nvarchar(255),
+  [direccion_destino] nvarchar(255),
+  [id_localidad] int,
+  [id_mensajeria] decimal(18,0),
+  PRIMARY KEY ([id_direcciones_mensajeria]),
+  CONSTRAINT [FK_direcciones_mensajeria.id_localidad]
+   FOREIGN KEY ([id_localidad])
+    REFERENCES [localidad]([id_localidad])
 );
 
 CREATE TABLE [producto_x_pedido] (
@@ -963,20 +971,24 @@ GO
 CREATE PROCEDURE migrar_direcciones_mensajeria
 AS 
 BEGIN
-	INSERT INTO direcciones_mensajeria(id_localidad, direccion_origen, direccion_destino)
+	INSERT INTO direcciones_mensajeria(id_localidad, direccion_origen, direccion_destino, id_mensajeria)
     SELECT DISTINCT
         l.id_localidad,
 		ENVIO_MENSAJERIA_DIR_ORIG,
-		ENVIO_MENSAJERIA_DIR_DEST
+		ENVIO_MENSAJERIA_DIR_DEST,
+		m.nro_envio_mensajeria
     FROM gd_esquema.Maestra 
 	JOIN provincia p 
 	on p.nombre = ENVIO_MENSAJERIA_PROVINCIA
 	JOIN localidad l
 	on l.nombre = ENVIO_MENSAJERIA_LOCALIDAD
+	JOIN mensajeria m
+	on m.nro_envio_mensajeria = ENVIO_MENSAJERIA_NRO
 	WHERE ENVIO_MENSAJERIA_LOCALIDAD is not null 
 	and ENVIO_MENSAJERIA_DIR_ORIG is not null
 	and ENVIO_MENSAJERIA_DIR_DEST is not null
 	and ENVIO_MENSAJERIA_PROVINCIA is not null
+	and ENVIO_MENSAJERIA_NRO is not null
 	IF @@ERROR != 0
 	PRINT('direcciones_mensajeria FAIL!')
 	ELSE
@@ -989,7 +1001,7 @@ AS
 BEGIN
 	INSERT INTO mensajeria(nro_envio_mensajeria,id_usuario,
 	id_medio_de_pago,id_estado_mensajeria,
-	id_tipo_paquete, id_repartidor, id_direcciones_mensajeria, distancia_km, valor_asegurado,
+	id_tipo_paquete, id_repartidor, distancia_km, valor_asegurado,
 	observaciones, precio_seguro, precio_total, fecha_pedido, 
 	fecha_entrega, propina, tiempo_estimado_entrega, calificacion)
 	SELECT DISTINCT
@@ -999,7 +1011,6 @@ BEGIN
 		em.id_estado_mensajeria,
 		tp.id_tipo_paquete,
 		r.id_repartidor,
-		dm.id_direcciones_mensajeria,
 		ENVIO_MENSAJERIA_KM,
 		ENVIO_MENSAJERIA_VALOR_ASEGURADO,
 		ENVIO_MENSAJERIA_OBSERV,
@@ -1013,12 +1024,6 @@ BEGIN
 	FROM gd_esquema.Maestra
 	JOIN usuario u
 	ON u.dni = USUARIO_DNI
-	JOIN localidad l
-	on l.nombre = ENVIO_MENSAJERIA_LOCALIDAD
-	JOIN direcciones_mensajeria dm
-	ON dm.direccion_destino = ENVIO_MENSAJERIA_DIR_DEST 
-	and dm.direccion_origen = ENVIO_MENSAJERIA_DIR_ORIG
-	and l.id_localidad = dm.id_localidad
 	JOIN medio_de_pago mp
 	ON mp.tipo_medio_pago = MEDIO_PAGO_TIPO
 	JOIN estado_mensajeria em
@@ -1029,8 +1034,6 @@ BEGIN
 	ON r.dni = REPARTIDOR_DNI
 	WHERE ENVIO_MENSAJERIA_ESTADO is not null and
 	ENVIO_MENSAJERIA_NRO is not null and
-	ENVIO_MENSAJERIA_DIR_ORIG is not null and
-	ENVIO_MENSAJERIA_DIR_DEST is not null and
 	ENVIO_MENSAJERIA_KM is not null and
 	ENVIO_MENSAJERIA_VALOR_ASEGURADO is not null and
 	ENVIO_MENSAJERIA_OBSERV is not null and
@@ -1038,7 +1041,6 @@ BEGIN
 	ENVIO_MENSAJERIA_TOTAL is not null and
 	ENVIO_MENSAJERIA_FECHA is not null and
 	ENVIO_MENSAJERIA_FECHA_ENTREGA is not null and
-	ENVIO_MENSAJERIA_LOCALIDAD is not null and
 	ENVIO_MENSAJERIA_PROPINA is not null and
 	ENVIO_MENSAJERIA_TIEMPO_ESTIMADO is not null and
 	ENVIO_MENSAJERIA_CALIFICACION is not null and
@@ -1107,8 +1109,6 @@ BEGIN
 	PRINT('PEDIDO OK!')
 END
 
-
---VERIFICADA CON EL FIX DE REPARTIDOR(POR REVISAR)
 GO
 CREATE PROCEDURE migrar_envio 
 AS 
@@ -1184,13 +1184,12 @@ GO
 CREATE PROCEDURE migrar_reclamo
 AS 
 BEGIN
-	INSERT INTO reclamo(nro_reclamo, id_tipo_reclamo,id_estado_reclamo,id_operador,id_pedido,descripcion,fecha_solucion,fecha,calificacion,solucion)
+	INSERT INTO reclamo(nro_reclamo, id_tipo_reclamo,id_estado_reclamo,id_operador,descripcion,fecha_solucion,fecha,calificacion,solucion)
 	SELECT distinct
 		RECLAMO_NRO,
 		tr.id_tipo_reclamo,
 		er.id_estado_reclamo,
 		o.id_operador,
-		p.id_pedido,
 		RECLAMO_DESCRIPCION,
 		RECLAMO_FECHA_SOLUCION,
 		RECLAMO_FECHA,
@@ -1201,12 +1200,10 @@ BEGIN
 	ON tr.tipo_reclamo = RECLAMO_TIPO
 	JOIN estado_reclamo er
 	ON er.estado_reclamo = RECLAMO_ESTADO
-	JOIN operador o
-	on o.dni = OPERADOR_RECLAMO_DNI 
     JOIN usuario u
     on u.dni = USUARIO_DNI
-	JOIN pedido p
-	ON p.nro_pedido = PEDIDO_NRO
+	JOIN operador o
+	ON o.dni = OPERADOR_RECLAMO_DNI
 	WHERE RECLAMO_TIPO is not null and
 	RECLAMO_ESTADO is not null and
 	RECLAMO_NRO is not null and
@@ -1222,6 +1219,28 @@ BEGIN
 	PRINT('RECLAMO FAIL!')
 	ELSE
 	PRINT('RECLAMO OK!')
+END
+
+GO
+CREATE PROCEDURE migrar_reclamo_x_pedido
+AS 
+BEGIN
+	INSERT INTO reclamo_x_pedido(id_pedido,id_reclamo)
+	SELECT DISTINCT
+		ped.id_pedido,
+		rec.id_reclamo
+	FROM gd_esquema.Maestra
+	JOIN reclamo rec
+	ON rec.nro_reclamo = RECLAMO_NRO 
+	JOIN pedido ped
+	on ped.nro_pedido = PEDIDO_NRO
+	WHERE PEDIDO_NRO is not null and
+	RECLAMO_NRO is not null 
+
+	IF @@ERROR != 0
+	PRINT('RECLAMO_X_PEDIDO FAIL!')
+	ELSE
+	PRINT('RECLAMO_X_PEDIDO OK!')
 END
 
 
@@ -1431,23 +1450,25 @@ EXEC migrar_dia
 GO
 EXEC migrar_horario_dia_x_local
 GO
-EXEC migrar_operador
-GO
 EXEC migrar_tarjeta
 GO
 EXEC migrar_tipo_paquete
 GO
 EXEC migrar_estado_mensajeria
 GO
-EXEC migrar_direcciones_mensajeria
-GO
 EXEC migrar_mensajeria
+GO
+EXEC migrar_direcciones_mensajeria
 GO
 EXEC migrar_pedido
 GO
 EXEC migrar_envio
 GO
+EXEC migrar_operador
+GO
 EXEC migrar_reclamo
+GO
+EXEC migrar_reclamo_x_pedido
 GO
 EXEC migrar_cupon_reclamo
 GO
