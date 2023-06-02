@@ -670,7 +670,7 @@ BEGIN
 	UNION 
     (SELECT DISTINCT LOCAL_LOCALIDAD, p.id_provincia
 	 FROM gd_esquema.Maestra 
-	 JOIN provincia p on p.nombre = LOCAL_PROVINCIA
+	 JOIN QUEMA2.provincia p on p.nombre = LOCAL_PROVINCIA
 	 WHERE LOCAL_LOCALIDAD is not null
 	 and LOCAL_PROVINCIA is not null)
 	IF @@ERROR != 0
@@ -848,11 +848,21 @@ GO
 CREATE PROCEDURE [QUEMA2].migrar_dia
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].dia(dia)
-	SELECT DISTINCT
+	INSERT INTO [QUEMA2].dia(dia) VALUES('Lunes')
+	INSERT INTO [QUEMA2].dia(dia) VALUES('Martes')
+	INSERT INTO [QUEMA2].dia(dia) VALUES('Miercoles')
+	INSERT INTO [QUEMA2].dia(dia) VALUES('Jueves')
+	INSERT INTO [QUEMA2].dia(dia) VALUES('Viernes')
+	INSERT INTO [QUEMA2].dia(dia) VALUES('Sabado')
+	INSERT INTO [QUEMA2].dia(dia) VALUES('Domingo')
+	
+	
+/*	SELECT DISTINCT
 		HORARIO_LOCAL_DIA
 	FROM gd_esquema.Maestra
-	WHERE HORARIO_LOCAL_DIA is not null 
+	WHERE HORARIO_LOCAL_DIA is not null */
+
+
 	IF @@ERROR != 0
 	PRINT('SP DIA FAIL!')
 	ELSE
@@ -1508,3 +1518,4 @@ EXEC QUEMA2.migrar_producto_x_local
 GO
 EXEC QUEMA2.migrar_producto_x_local_x_pedido
 GO
+
