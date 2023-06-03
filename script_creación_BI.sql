@@ -15,6 +15,9 @@ GO
 	
 	IF EXISTS(select * FROM sys.views where name = 'promedio_calificacion_mensual_por_local')
 	DROP VIEW [QUEMA2].promedio_calificacion_mensual_por_local;
+
+	IF EXISTS(select * FROM sys.views where name = 'monto_no_cobrado_por_pedido_cancelado_x_dia_x_franja_horaria')
+	DROP VIEW [QUEMA2].monto_no_cobrado_por_pedido_cancelado_x_dia_x_franja_horaria;
 	
 GO
 ALTER FUNCTION QUEMA2.getDataMayoresPedidos(@localidad nvarchar(255),@mes int,@id_tipo_local int,
@@ -82,18 +85,40 @@ GO
 	ON d.id_dia = DATEPART(dw, convert(date,ped.fecha_pedido))
 	group by loc.localidad, loc.id_tipo_local, MONTH(ped.fecha_pedido), YEAR(ped.fecha_pedido)
 	
+	
 	GO
-
 
 	/* 2
 	Monto total no cobrado por cada local en función de los pedidos
 	cancelados según el día de la semana y la franja horaria (cuentan como
 	pedidos cancelados tanto los que cancela el usuario como el local).*/
-
 	
+	
+	CREATE VIEW QUEMA2.monto_no_cobrado_por_pedido_cancelado_x_dia_x_franja_horaria
+	AS
+	SELECT 
+		loc.id_local as LocalId,
+		d.dia as Dia,
+		hdl.hora_apertura as HoraApertura,
+		hdl.hora_cierre as HoraCierre,
+		SUM(ped.total) as MontoTotalNoCobrado
+	FROM QUEMA2.pedido ped
+	JOIN QUEMA2.estado_pedido ep
+	ON ep.id_estado_pedido = ped.id_estado_pedido
+	and ep.nombre_estado = 'Estado Mensajeria Cancelado'
+	JOIN QUEMA2.dia d
+	ON d.id_dia = DATEPART(dw, convert(date,ped.fecha_pedido))
+	JOIN QUEMA2.local loc
+	ON loc.id_local = ped.id_local
+	JOIN QUEMA2.horario_dia_x_local hdl
+	ON hdl.id_dia = d.id_dia
+	and hdl.id_local = loc.id_local
+	GROUP BY loc.id_local, d.dia, hdl.hora_apertura, hdl.hora_cierre
+	
+	GO
 	--3 Valor promedio mensual que tienen los envíos de pedidos en cada localidad.
 		CREATE VIEW QUEMA2.promedio_mensual_precio_envio_x_localidad
-	AS 	SELECT 		loc.nombre,		((SUM(env.precio_envio))/(COUNT(env.id_envio))) as valorPromedioMensualDeEnvio	FROM QUEMA2.envio env	JOIN QUEMA2.pedido ped	on ped.id_pedido = env.id_pedido	JOIN QUEMA2.local local	on local.id_local = ped.id_local	JOIN QUEMA2.localidad loc	on loc.nombre = local.localidad	GROUP BY loc.nombre		
+	AS 	SELECT 		loc.nombre,		((SUM(env.precio_envio))/(COUNT(env.id_envio))) as valorPromedioMensualDeEnvio	FROM QUEMA2.envio env	JOIN QUEMA2.pedido ped	on ped.id_pedido = env.id_pedido	JOIN QUEMA2.local local	on local.id_local = ped.id_local	JOIN QUEMA2.localidad loc	on loc.nombre = local.localidad	GROUP BY loc.nombre	                                                        	
     /* 4
 	Desvío promedio en tiempo de entrega según el tipo de movilidad, el día
 	de la semana y la franja horaria.
