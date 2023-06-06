@@ -197,8 +197,7 @@ GO
 
 	/* 1  Día de la semana y franja horaria con mayor cantidad de pedidos 
 	según la localidad y categoría del local, para cada mes de cada año.*/ 
-	--TIEMPO EJECUCION: 4 min aprox
-	 
+	--TIEMPO EJECUCION: 4 min REVISAR MEJORAS
 	GO
 	CREATE VIEW QUEMA2.dia_hora_de_mayor_pedidos_x_localidad_x_categoria
 	AS 
@@ -207,9 +206,9 @@ GO
 		loc.id_tipo_local as TipoLocal,
 		MONTH(ped.fecha_pedido) as Mes,
 		YEAR(ped.fecha_pedido) as Anio,
-		QUEMA2.getDiaDeMayoresPedidos(loc.localidad,MONTH(ped.fecha_pedido),loc.id_tipo_local,YEAR(ped.fecha_pedido),1) as Dia/*,
+		QUEMA2.getDiaDeMayoresPedidos(loc.localidad,MONTH(ped.fecha_pedido),loc.id_tipo_local,YEAR(ped.fecha_pedido),1) as Dia,
 		QUEMA2.getFranjaHorariaDeMayoresPedidos(loc.localidad,MONTH(ped.fecha_pedido),loc.id_tipo_local,YEAR(ped.fecha_pedido),1) as HoraApertura,
-		QUEMA2.getFranjaHorariaDeMayoresPedidos(loc.localidad,MONTH(ped.fecha_pedido),loc.id_tipo_local,YEAR(ped.fecha_pedido),2) as HoraCierre*/
+		QUEMA2.getFranjaHorariaDeMayoresPedidos(loc.localidad,MONTH(ped.fecha_pedido),loc.id_tipo_local,YEAR(ped.fecha_pedido),2) as HoraCierre
 	FROM QUEMA2.local loc
 	LEFT JOIN QUEMA2.pedido ped
 	on ped.id_local = loc.id_local
@@ -248,13 +247,13 @@ GO
 	GO
 	/* 3 Valor promedio mensual que tienen los envíos de pedidos en cada localidad. */ 	 --TIEMPO EJECUCION: VUELA		CREATE VIEW QUEMA2.promedio_mensual_precio_envio_x_localidad
 	AS 	SELECT 		loc.nombre,		((SUM(env.precio_envio))/(COUNT(env.id_envio))) as valorPromedioMensualDeEnvio	FROM QUEMA2.envio env	JOIN QUEMA2.pedido ped	on ped.id_pedido = env.id_pedido	JOIN QUEMA2.local local	on local.id_local = ped.id_local	JOIN QUEMA2.localidad loc	on loc.nombre = local.localidad	GROUP BY loc.nombre	                                                        	
-    /* 4
+    /* 4 BRUNO
 	Desvío promedio en tiempo de entrega según el tipo de movilidad, el día de la semana y la franja horaria.
 	El desvío debe calcularse en minutos y representa la diferencia entre la fecha/hora en que se realizó el pedido
 	 y la fecha/hora que se entregó en comparación con los minutos de tiempo estimados.
 	Este indicador debe tener en cuenta todos los envíos, es decir, sumar tanto los envíos de pedidos como los de mensajería.*/
 
-	/* 5 Monto total de los cupones utilizados por mes en función del rango etario de los usuarios */
+	/* 5 DIEGO Monto total de los cupones utilizados por mes en función del rango etario de los usuarios */ 
 
 	/* 6 Promedio de calificación mensual por local. */ 	
 	--TIEMPO EJECUCION: VUELA
@@ -288,7 +287,7 @@ GO
 		 FROM QUEMA2.pedidosPorLocalidadPorEdadRepartidorPorMesEntregadas(loc.id_localidad,MONTH(ped.fecha_pedido),re.fecha_base,re.fecha_limite))))
 		  / 
 		(SELECT COUNT(*)
-		 FROM QUEMA2.pedidosPorLocalidadPorEdadRepartidorPorMes(loc.id_localidad,MONTH(ped.fecha_pedido),re.fecha_base,re.fecha_limite))) * 100 as porecentajePedidosEntregados 
+		 FROM QUEMA2.pedidosPorLocalidadPorEdadRepartidorPorMes(loc.id_localidad,MONTH(ped.fecha_pedido),re.fecha_base,re.fecha_limite))) * 100 as porcentajePedidosEntregados 
 	FROM QUEMA2.repartidor repar
 	JOIN QUEMA2.envio env
 	ON env.id_repartidor = repar.id_repartidor
@@ -311,10 +310,7 @@ GO
 	AS 	SELECT 		tp.nombre,		MONTH(mensaj.fecha_pedido) Mes,		((SUM(mensaj.valor_asegurado))/COUNT(mensaj.id_mensajeria)) as promedioMensualValorAsegurado	FROM QUEMA2.mensajeria mensaj	JOIN QUEMA2.tipo_paquete tp	on tp.id_tipo_paquete = mensaj.id_tipo_paquete	GROUP BY tp.nombre,MONTH(mensaj.fecha_pedido)
 	
 	GO
-	/* 9
-	Cantidad de reclamos mensuales recibidos por cada local en función del
-	día de la semana y rango horario.
-	*/
+	/* 9 DIEGO Cantidad de reclamos mensuales recibidos por cada local en función del día de la semana y rango horario. */
 
 
 	/* 10
@@ -341,7 +337,5 @@ GO
 	GROUP BY re.fecha_base,re.fecha_limite,tr.tipo_reclamo,MONTH(rec.fecha)
 	
 	
-	/* 11
-	Monto mensual generado en cupones a partir de reclamos.
-	*/
+	/* 11 DIEGO Monto mensual generado en cupones a partir de reclamos. */
  
