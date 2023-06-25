@@ -145,15 +145,18 @@ CREATE TABLE [QUEMA2].[tipo_local] (
 CREATE TABLE [QUEMA2].[local] (
   [id_local] int IDENTITY(1,1),
   [id_tipo_local] int,
+  [id_localidad] int,
   [nombre] nvarchar(100),
   [direccion] nvarchar(255),
   [descripcion] nvarchar(255),
-  [localidad] nvarchar(255),
   [provincia] nvarchar(255)
   PRIMARY KEY ([id_local]),
   CONSTRAINT [FK_local.id_tipo_local]
     FOREIGN KEY ([id_tipo_local])
-      REFERENCES [QUEMA2].[tipo_local]([id_tipo_local])
+      REFERENCES [QUEMA2].[tipo_local]([id_tipo_local]),
+  CONSTRAINT [FK_localidad.id_localidad]
+    FOREIGN KEY ([id_localidad])
+      REFERENCES [QUEMA2].[localidad]([id_localidad])
 );
 
 
@@ -901,17 +904,19 @@ GO
 CREATE PROCEDURE [QUEMA2].migrar_local
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].local(id_tipo_local, nombre, direccion, descripcion, localidad, provincia)
+	INSERT INTO [QUEMA2].local(id_tipo_local, id_localidad, nombre, direccion, descripcion, provincia)
 	SELECT DISTINCT
 		tl.id_tipo_local,
+		loc.id_localidad,
 		LOCAL_NOMBRE,
 		LOCAL_DIRECCION,
 		LOCAL_DESCRIPCION,
-		LOCAL_LOCALIDAD,
 		LOCAL_PROVINCIA
 	FROM gd_esquema.Maestra
 	JOIN tipo_local tl
 	ON tl.tipo_local = LOCAL_TIPO 
+	JOIN localidad loc
+	ON loc.nombre = LOCAL_LOCALIDAD
 	WHERE LOCAL_NOMBRE is not null and
 	LOCAL_DIRECCION is not null and
 	LOCAL_DESCRIPCION is not null and
