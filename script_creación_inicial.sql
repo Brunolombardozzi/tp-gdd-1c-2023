@@ -487,7 +487,7 @@ CREATE TABLE [QUEMA2].[producto_x_local_x_pedido] (
 );
 
 CREATE TABLE [QUEMA2].[dia] (
-  [id_dia] int IDENTITY(1,1),
+  [id_dia] int IDENTITY(0,1),
   [dia] nvarchar(50),
   PRIMARY KEY ([id_dia])
 );
