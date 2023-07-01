@@ -143,49 +143,6 @@ CREATE TABLE [QUEMA2].[estado_pedido_bi] (
   PRIMARY KEY ([estado_pedido_bi_id])
 );
 
-CREATE TABLE [QUEMA2].[pedido_bi] (
-  [pedido_bi_id] int,
-  [estado_pedido_bi_id] int,
-  [id_usuario] int,
-  [local_bi_id] int,
-  [medio_pago_bi_id] int,
-  [fecha_pedido] datetime2(3),
-  [fecha_entrega] datetime2(3),
-  [total_productos] decimal(18,2),
-  [total] decimal(18,2),
-  PRIMARY KEY ([pedido_bi_id]),
-  CONSTRAINT [FK_pedido_bi.local_bi_id]
-    FOREIGN KEY ([local_bi_id])
-      REFERENCES [QUEMA2].[local_bi]([local_bi_id]),
-  CONSTRAINT [FK_pedido_bi.medio_pago_bi_id]
-    FOREIGN KEY ([medio_pago_bi_id])
-      REFERENCES [QUEMA2].[medio_pago_bi]([medio_pago_bi_id]),
-  CONSTRAINT [FK_pedido_bi.estado_pedido_bi_id]
-    FOREIGN KEY ([estado_pedido_bi_id])
-      REFERENCES [QUEMA2].[estado_pedido_bi]([estado_pedido_bi_id])
-);
-
-CREATE TABLE [QUEMA2].[reclamo_bi] (
-  [reclamo_bi_id] int,
-  [tipo_reclamo_bi_id] int,
-  [estado_reclamo_bi_id] int,
-  [id_operador] int,
-  [id_usuario] int,
-  [pedido_bi_id] int,
-  [nro_reclamo] decimal(18,2),
-  [descripcion] nvarchar(255) ,
-  [fecha_solucion] datetime2(3),
-  [calificacion] int,
-  [solucion] nvarchar(255),
-  [fecha_reclamo] datetime,
-  PRIMARY KEY ([reclamo_bi_id]),
-  CONSTRAINT [FK_reclamo_bi.tipo_reclamo_bi_id]
-    FOREIGN KEY ([tipo_reclamo_bi_id])
-      REFERENCES [QUEMA2].[tipo_reclamo_bi]([tipo_reclamo_bi_id]),
-  CONSTRAINT [FK_reclamo_bi.pedido_bi_id]
-    FOREIGN KEY ([pedido_bi_id])
-      REFERENCES [QUEMA2].[pedido_bi]([pedido_bi_id])
-);
 
 CREATE TABLE [QUEMA2].[tiempo_bi] (
   [tiempo_bi_id] int IDENTITY(1,1),
@@ -210,6 +167,90 @@ CREATE TABLE [QUEMA2].[estado_mensajeria_bi] (
   [estado_mensajeria] nvarchar(50),
   PRIMARY KEY ([estado_mensajeria_bi_id])
 );
+
+
+CREATE TABLE [QUEMA2].[rango_horario_bi] (
+  [rango_horario_bi_id] int IDENTITY(1,1),
+  [hora_desde] nvarchar(10),
+  [hora_hasta] nvarchar(10),
+  PRIMARY KEY ([rango_horario_bi_id])
+);
+
+CREATE TABLE [QUEMA2].[dia_bi] (
+  [dia_bi_id] int,
+  [nombre] nvarchar(50),
+  PRIMARY KEY ([dia_bi_id])
+);
+
+CREATE TABLE [QUEMA2].[movilidad_bi] (
+  [movilidad_bi_id] int,
+  [tipo_movilidad] nvarchar(50),
+  PRIMARY KEY ([movilidad_bi_id])
+);
+
+CREATE TABLE [QUEMA2].[pedido_bi] (
+  [pedido_bi_id] int IDENTITY(1,1),
+  [estado_pedido_bi_id] int,
+  [rango_horario_bi_id] int,
+  [rango_etario_bi_id] int,
+  [localidad_x_provincia_bi_id] int,
+  [dia_bi_id] int,
+  [tiempo_bi_id] int,
+  [medio_pago_bi_id] int,
+  [movilidad_bi_id] int,
+  [tipo_local_bi_id] int,
+  PRIMARY KEY ([pedido_bi_id]),
+  CONSTRAINT [FK_rango_horario_bi.rango_horario_bi_id]
+    FOREIGN KEY ([rango_horario_bi_id])
+      REFERENCES [QUEMA2].[rango_horario_bi]([rango_horario_bi_id]),
+  CONSTRAINT [FK_rango_etario_bi.tipo_reclamo_bi_id]
+    FOREIGN KEY ([rango_etario_bi_id])
+      REFERENCES [QUEMA2].[rango_etario_bi]([rango_etario_bi_id]),
+  CONSTRAINT [FK_localidad_x_provincia_bi.localidad_x_provincia_bi_id]
+    FOREIGN KEY ([localidad_x_provincia_bi_id])
+      REFERENCES [QUEMA2].[localidad_x_provincia_bi]([localidad_x_provincia_bi_id]),
+  CONSTRAINT [FK_dia_bi.dia_bi_id]
+    FOREIGN KEY ([dia_bi_id])
+      REFERENCES [QUEMA2].[dia_bi]([dia_bi_id]),
+  CONSTRAINT [FK_tiempo_bi.tiempo_bi_id]
+    FOREIGN KEY ([tiempo_bi_id])
+      REFERENCES [QUEMA2].[tiempo_bi]([tiempo_bi_id]),
+  CONSTRAINT [FK_movilidad_bi.movilidad_bi_id]
+    FOREIGN KEY ([movilidad_bi_id])
+      REFERENCES [QUEMA2].[movilidad_bi]([movilidad_bi_id]),
+  CONSTRAINT [FK_estado_pedido_bi.movilidad_bi_id]
+    FOREIGN KEY ([estado_pedido_bi_id])
+      REFERENCES [QUEMA2].[estado_pedido_bi]([estado_pedido_bi_id]),
+  CONSTRAINT [FK_medio_pago_bi.medio_pago_bi_id]
+    FOREIGN KEY ([medio_pago_bi_id])
+      REFERENCES [QUEMA2].[medio_pago_bi]([medio_pago_bi_id]),
+  CONSTRAINT [FK_tipo_local_bi.tipo_local_bi_id]
+    FOREIGN KEY ([tipo_local_bi_id])
+      REFERENCES [QUEMA2].[tipo_local_bi]([tipo_local_bi_id])
+);
+
+CREATE TABLE [QUEMA2].[reclamo_bi] (
+  [reclamo_bi_id] int,
+  [tipo_reclamo_bi_id] int,
+  [estado_reclamo_bi_id] int,
+  [id_operador] int,
+  [id_usuario] int,
+  [pedido_bi_id] int,
+  [nro_reclamo] decimal(18,2),
+  [descripcion] nvarchar(255) ,
+  [fecha_solucion] datetime2(3),
+  [calificacion] int,
+  [solucion] nvarchar(255),
+  [fecha_reclamo] datetime,
+  PRIMARY KEY ([reclamo_bi_id]),
+  CONSTRAINT [FK_reclamo_bi.tipo_reclamo_bi_id]
+    FOREIGN KEY ([tipo_reclamo_bi_id])
+      REFERENCES [QUEMA2].[tipo_reclamo_bi]([tipo_reclamo_bi_id]),
+  CONSTRAINT [FK_reclamo_bi.pedido_bi_id]
+    FOREIGN KEY ([pedido_bi_id])
+      REFERENCES [QUEMA2].[pedido_bi]([pedido_bi_id])
+);
+
 
 CREATE TABLE [QUEMA2].[mensajeria_bi] (
   [mensajeria_bi_id] int,
@@ -243,25 +284,6 @@ CREATE TABLE [QUEMA2].[mensajeria_bi] (
       REFERENCES [QUEMA2].[medio_pago_bi]([medio_pago_bi_id])
 );
 
-CREATE TABLE [QUEMA2].[rango_horario_bi] (
-  [rango_horario_bi_id] int IDENTITY(1,1),
-  [hora_desde] nvarchar(10),
-  [hora_hasta] nvarchar(10),
-  PRIMARY KEY ([rango_horario_bi_id])
-);
-
-CREATE TABLE [QUEMA2].[dia_bi] (
-  [dia_bi_id] int,
-  [hora_desde] Datetime,
-  [hora_hasta] Datetime,
-  PRIMARY KEY ([dia_bi_id])
-);
-
-CREATE TABLE [QUEMA2].[movilidad_bi] (
-  [movilidad_bi_id] int,
-  [tipo_movilidad] nvarchar(50),
-  PRIMARY KEY ([movilidad_bi_id])
-);
 
 -- DROPEO DE STORED PROCEDURES
 
@@ -313,9 +335,10 @@ GO
 CREATE PROCEDURE [QUEMA2].migrar_dia_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].dia_bi(dia_bi_id)
+	INSERT INTO [QUEMA2].dia_bi(dia_bi_id, nombre)
 	SELECT DISTINCT 
-		d.id_dia
+		d.id_dia,
+		d.dia
 	FROM [QUEMA2].dia d
 
 	IF @@ERROR != 0
@@ -501,19 +524,50 @@ GO
 CREATE PROCEDURE [QUEMA2].migrar_pedido_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].pedido_bi(pedido_bi_id,estado_pedido_bi_id, id_usuario, local_bi_id,
-	 medio_pago_bi_id, fecha_pedido, fecha_entrega, total_productos, total)
-	SELECT DISTINCT
-		ped.id_pedido,
-		ped.id_estado_pedido,
-		ped.id_usuario,
-		ped.id_local,
-		ped.id_medio_pago,
-		ped.fecha_pedido,
-		ped.fecha_entrega,
-		ped.total_productos,
-		ped.total
+	INSERT INTO [QUEMA2].pedido_bi(rango_horario_bi_id, rango_etario_bi_id, localidad_x_provincia_bi_id, medio_pago_bi_id,
+	movilidad_bi_id, estado_pedido_bi_id, dia_bi_id, tiempo_bi_id, tipo_local_bi_id)
+	SELECT 
+	rh.rango_horario_bi_id, 
+	re.rango_etario_bi_id,
+	lxp.localidad_x_provincia_bi_id,
+	mp.medio_pago_bi_id,
+	mov.movilidad_bi_id,
+	ep.estado_pedido_bi_id,
+	dia.dia_bi_id,
+	tiempo.tiempo_bi_id,
+	tl.tipo_local_bi_id
 	FROM [QUEMA2].pedido ped
+	JOIN QUEMA2.usuario usu
+	ON usu.id_usuario = ped.id_usuario
+	JOIN QUEMA2.rango_horario_bi rh
+	ON DATENAME(HOUR, ped.fecha_pedido) <= rh.hora_hasta
+	and DATENAME(HOUR, ped.fecha_pedido) >= rh.hora_desde
+	JOIN QUEMA2.rango_etario_bi re
+	ON DATEDIFF(YEAR, usu.fecha_nacimiento, GETDATE()) <= re.fecha_limite
+	and DATEDIFF(YEAR, usu.fecha_nacimiento, GETDATE()) >= re.fecha_base
+	JOIN QUEMA2.medio_pago_bi mp
+	ON mp.medio_pago_bi_id = ped.id_medio_pago
+	JOIN QUEMA2.dia_bi dia
+	ON dia.dia_bi_id = DATEPART(dw, convert(date,ped.fecha_pedido))
+	JOIN QUEMA2.local_bi loc
+	ON loc.local_bi_id = ped.id_local
+	JOIN QUEMA2.localidad_x_provincia_bi lxp
+	ON lxp.localidad_x_provincia_bi_id = loc.localidad_x_provincia_bi_id
+	JOIN QUEMA2.envio env
+	ON env.id_pedido = ped.id_pedido
+	JOIN QUEMA2.repartidor rep
+	ON rep.id_repartidor = env.id_repartidor
+	JOIN QUEMA2.movilidad_bi mov
+	ON mov.movilidad_bi_id = rep.id_movilidad
+	JOIN QUEMA2.estado_pedido_bi ep
+	ON ep.estado_pedido_bi_id = ped.id_estado_pedido
+	JOIN QUEMA2.tiempo_bi tiempo
+	ON tiempo.anio = YEAR(ped.fecha_pedido)
+	AND tiempo.mes = MONTH(ped.fecha_pedido)
+	JOIN QUEMA2.tipo_local_bi tl
+	ON tl.tipo_local_bi_id = loc.tipo_local_bi_id
+	GROUP BY rh.rango_horario_bi_id, re.rango_etario_bi_id, lxp.localidad_x_provincia_bi_id, mp.medio_pago_bi_id,
+	mov.movilidad_bi_id, ep.estado_pedido_bi_id, dia.dia_bi_id, tiempo.tiempo_bi_id, tl.tipo_local_bi_id
 	IF @@ERROR != 0
 	PRINT('SP PEDIDO BI FAIL!')
 	ELSE
@@ -592,7 +646,7 @@ BEGIN
 	(SELECT
 		YEAR(fecha_pedido), 
 		MONTH(fecha_pedido)
-	FROM [QUEMA2].pedido_bi
+	FROM [QUEMA2].pedido
 	GROUP BY YEAR(fecha_pedido), MONTH(fecha_pedido))
 	UNION
 	(SELECT
@@ -626,20 +680,21 @@ EXEC QUEMA2.migrar_tipo_local_bi;
 GO
 EXEC QUEMA2.migrar_local_bi
 GO
-EXEC QUEMA2.migrar_pedido_bi
-GO
 EXEC QUEMA2.migrar_tipo_paquete_bi
 GO
-EXEC QUEMA2.migrar_mensajeria_bi
+--EXEC QUEMA2.migrar_mensajeria_bi
 GO
-EXEC QUEMA2.migrar_tipo_reclamo_bi
+--EXEC QUEMA2.migrar_tipo_reclamo_bi
 GO
-EXEC QUEMA2.migrar_reclamo_bi
+--EXEC QUEMA2.migrar_reclamo_bi
 GO
 EXEC QUEMA2.migrar_dia_bi
 GO
 EXEC QUEMA2.migrar_tiempo_bi
 GO
+EXEC QUEMA2.migrar_pedido_bi
+GO
+
 -- VISTAS AUXILIARES
 	GO
 	CREATE VIEW QUEMA2.dia_hora_x_localidad_x_categoria
@@ -762,7 +817,7 @@ GO
 
 -- VISTAS OBLIGATORIAS
 
-
+/*
 	USE [GD1C2023];
 	GO
 	CREATE VIEW QUEMA2.dia_hora_de_mayor_pedidos_x_localidad_x_categoria
@@ -1029,4 +1084,4 @@ GO
 	FROM QUEMA2.cupon_reclamo cr
 	JOIN QUEMA2.reclamo_bi rec
 	ON rec.pedido_bi_id = cr.id_reclamo
-	GROUP BY MONTH(rec.fecha_reclamo),YEAR(rec.fecha_reclamo)
+	GROUP BY MONTH(rec.fecha_reclamo),YEAR(rec.fecha_reclamo)*/
