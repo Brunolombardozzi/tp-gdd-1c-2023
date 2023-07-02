@@ -66,8 +66,9 @@ GO
 
 
 -- DROP TABLES
-
-IF OBJECT_ID ('QUEMA2.rango_etario_bi')				IS NOT NULL DROP TABLE QUEMA2.rango_etario_bi;
+IF OBJECT_ID ('QUEMA2.rango_etario_usuario_bi')				IS NOT NULL DROP TABLE QUEMA2.rango_etario_usuario_bi;
+IF OBJECT_ID ('QUEMA2.rango_etario_operador_bi')				IS NOT NULL DROP TABLE QUEMA2.rango_etario_operador_bi;
+IF OBJECT_ID ('QUEMA2.rango_etario_repartidor_bi')				IS NOT NULL DROP TABLE QUEMA2.rango_etario_repartidor_bi;
 IF OBJECT_ID ('QUEMA2.rango_horario_bi') 			IS NOT NULL DROP TABLE QUEMA2.rango_horario_bi;
 IF OBJECT_ID ('QUEMA2.tiempo_bi')					IS NOT NULL DROP TABLE QUEMA2.tiempo_bi;
 IF OBJECT_ID ('QUEMA2.reclamo_bi')					IS NOT NULL DROP TABLE QUEMA2.reclamo_bi; 
@@ -87,11 +88,25 @@ IF OBJECT_ID ('QUEMA2.tipo_reclamo_bi')					IS NOT NULL DROP TABLE QUEMA2.tipo_r
 
 --CREACION DE TABLAS
 
-CREATE TABLE [QUEMA2].[rango_etario_bi] (
-  [rango_etario_bi_id] int IDENTITY(1,1),
+CREATE TABLE [QUEMA2].[rango_etario_usuario_bi] (
+  [rango_etario_usuario_bi_id] int IDENTITY(1,1),
   [fecha_base] int,
   [fecha_limite] int,
-  PRIMARY KEY ([rango_etario_bi_id])
+  PRIMARY KEY ([rango_etario_usuario_bi_id])
+);
+
+CREATE TABLE [QUEMA2].[rango_etario_operador_bi] (
+  [rango_etario_operador_bi_id] int IDENTITY(1,1),
+  [fecha_base] int,
+  [fecha_limite] int,
+  PRIMARY KEY (rango_etario_operador_bi_id)
+);
+
+CREATE TABLE [QUEMA2].[rango_etario_repartidor_bi] (
+  [rango_etario_repartidor_bi_id] int IDENTITY(1,1),
+  [fecha_base] int,
+  [fecha_limite] int,
+  PRIMARY KEY ([rango_etario_repartidor_bi_id])
 );
 
 CREATE TABLE [QUEMA2].[tipo_reclamo_bi] (
@@ -192,7 +207,8 @@ CREATE TABLE [QUEMA2].[pedido_bi] (
   [pedido_bi_id] int IDENTITY(1,1),
   [estado_pedido_bi_id] int,
   [rango_horario_bi_id] int,
-  [rango_etario_bi_id] int,
+  [rango_etario_usuario_bi_id] int,
+  [rango_etario_repartidor_bi_id] int,
   [localidad_x_provincia_bi_id] int,
   [dia_bi_id] int,
   [tiempo_bi_id] int,
@@ -203,9 +219,12 @@ CREATE TABLE [QUEMA2].[pedido_bi] (
   CONSTRAINT [FK_rango_horario_bi.rango_horario_bi_id]
     FOREIGN KEY ([rango_horario_bi_id])
       REFERENCES [QUEMA2].[rango_horario_bi]([rango_horario_bi_id]),
-  CONSTRAINT [FK_rango_etario_bi.tipo_reclamo_bi_id]
-    FOREIGN KEY ([rango_etario_bi_id])
-      REFERENCES [QUEMA2].[rango_etario_bi]([rango_etario_bi_id]),
+  CONSTRAINT [FK_rango_etario_usuario_bi.rango_horario_usuario_bi_id]
+    FOREIGN KEY ([rango_etario_usuario_bi_id])
+      REFERENCES [QUEMA2].[rango_etario_usuario_bi]([rango_etario_usuario_bi_id]),
+  CONSTRAINT [FK_rango_etario_repartidor_bi.rango_horario_repartidor_bi_id]
+    FOREIGN KEY ([rango_etario_repartidor_bi_id])
+      REFERENCES [QUEMA2].[rango_etario_repartidor_bi]([rango_etario_repartidor_bi_id]),
   CONSTRAINT [FK_localidad_x_provincia_bi.localidad_x_provincia_bi_id]
     FOREIGN KEY ([localidad_x_provincia_bi_id])
       REFERENCES [QUEMA2].[localidad_x_provincia_bi]([localidad_x_provincia_bi_id]),
@@ -380,13 +399,41 @@ END
 
 
 GO 
-CREATE PROCEDURE [QUEMA2].migrar_rango_etario_bi
+CREATE PROCEDURE [QUEMA2].migrar_rango_etario_usuario_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].rango_etario_bi(fecha_base, fecha_limite) VALUES(0,25)
-	INSERT INTO [QUEMA2].rango_etario_bi(fecha_base, fecha_limite) VALUES(25,35)
-	INSERT INTO [QUEMA2].rango_etario_bi(fecha_base, fecha_limite) VALUES(35,55)
-	INSERT INTO [QUEMA2].rango_etario_bi(fecha_base, fecha_limite) VALUES(55,75)
+	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) VALUES(0,25)
+	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) VALUES(25,35)
+	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) VALUES(35,55)
+	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) VALUES(55,75)
+	IF @@ERROR != 0
+	PRINT('SP RANGO ETARIO BI FAIL!')
+	ELSE
+	PRINT('SP RANGO ETARIO BI OK!')
+END
+
+GO 
+CREATE PROCEDURE [QUEMA2].migrar_rango_etario_repartidor_bi
+AS 
+BEGIN
+	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) VALUES(0,25)
+	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) VALUES(25,35)
+	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) VALUES(35,55)
+	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) VALUES(55,75)
+	IF @@ERROR != 0
+	PRINT('SP RANGO ETARIO BI FAIL!')
+	ELSE
+	PRINT('SP RANGO ETARIO BI OK!')
+END
+
+GO 
+CREATE PROCEDURE [QUEMA2].migrar_rango_etario_operador_bi
+AS 
+BEGIN
+	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) VALUES(0,25)
+	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) VALUES(25,35)
+	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) VALUES(35,55)
+	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) VALUES(55,75)
 	IF @@ERROR != 0
 	PRINT('SP RANGO ETARIO BI FAIL!')
 	ELSE
@@ -524,11 +571,12 @@ GO
 CREATE PROCEDURE [QUEMA2].migrar_pedido_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].pedido_bi(rango_horario_bi_id, rango_etario_bi_id, localidad_x_provincia_bi_id, medio_pago_bi_id,
+	INSERT INTO [QUEMA2].pedido_bi(rango_horario_bi_id, rango_etario_usuario_bi_id, rango_etario_repartidor_bi_id, localidad_x_provincia_bi_id, medio_pago_bi_id,
 	movilidad_bi_id, estado_pedido_bi_id, dia_bi_id, tiempo_bi_id, tipo_local_bi_id)
 	SELECT 
 	rh.rango_horario_bi_id, 
-	re.rango_etario_bi_id,
+	reu.rango_etario_usuario_bi_id,
+	rer.rango_etario_repartidor_bi_id,
 	lxp.localidad_x_provincia_bi_id,
 	mp.medio_pago_bi_id,
 	mov.movilidad_bi_id,
@@ -542,9 +590,9 @@ BEGIN
 	JOIN QUEMA2.rango_horario_bi rh
 	ON DATENAME(HOUR, ped.fecha_pedido) <= rh.hora_hasta
 	and DATENAME(HOUR, ped.fecha_pedido) >= rh.hora_desde
-	JOIN QUEMA2.rango_etario_bi re
-	ON DATEDIFF(YEAR, usu.fecha_nacimiento, GETDATE()) <= re.fecha_limite
-	and DATEDIFF(YEAR, usu.fecha_nacimiento, GETDATE()) >= re.fecha_base
+	JOIN QUEMA2.rango_etario_usuario_bi reu
+	ON DATEDIFF(YEAR, usu.fecha_nacimiento, GETDATE()) <= reu.fecha_limite
+	and DATEDIFF(YEAR, usu.fecha_nacimiento, GETDATE()) >= reu.fecha_base
 	JOIN QUEMA2.medio_pago_bi mp
 	ON mp.medio_pago_bi_id = ped.id_medio_pago
 	JOIN QUEMA2.dia_bi dia
@@ -557,6 +605,9 @@ BEGIN
 	ON env.id_pedido = ped.id_pedido
 	JOIN QUEMA2.repartidor rep
 	ON rep.id_repartidor = env.id_repartidor
+	JOIN QUEMA2.rango_etario_repartidor_bi rer
+	ON DATEDIFF(YEAR, rep.fecha_nacimiento, GETDATE()) <= rer.fecha_limite
+	and DATEDIFF(YEAR, rep.fecha_nacimiento, GETDATE()) >= rer.fecha_base
 	JOIN QUEMA2.movilidad_bi mov
 	ON mov.movilidad_bi_id = rep.id_movilidad
 	JOIN QUEMA2.estado_pedido_bi ep
@@ -566,7 +617,7 @@ BEGIN
 	AND tiempo.mes = MONTH(ped.fecha_pedido)
 	JOIN QUEMA2.tipo_local_bi tl
 	ON tl.tipo_local_bi_id = loc.tipo_local_bi_id
-	GROUP BY rh.rango_horario_bi_id, re.rango_etario_bi_id, lxp.localidad_x_provincia_bi_id, mp.medio_pago_bi_id,
+	GROUP BY rh.rango_horario_bi_id, reu.rango_etario_usuario_bi_id, rer.rango_etario_repartidor_bi_id, lxp.localidad_x_provincia_bi_id, mp.medio_pago_bi_id,
 	mov.movilidad_bi_id, ep.estado_pedido_bi_id, dia.dia_bi_id, tiempo.tiempo_bi_id, tl.tipo_local_bi_id
 	IF @@ERROR != 0
 	PRINT('SP PEDIDO BI FAIL!')
@@ -672,7 +723,11 @@ EXEC QUEMA2.migrar_medio_pago_bi
 GO
 EXEC QUEMA2.migrar_estado_pedido_bi
 GO
-EXEC QUEMA2.migrar_rango_etario_bi
+EXEC QUEMA2.migrar_rango_etario_usuario_bi
+GO
+EXEC QUEMA2.migrar_rango_etario_repartidor_bi
+GO
+EXEC QUEMA2.migrar_rango_etario_usuario_bi
 GO
 EXEC QUEMA2.migrar_rango_horario_bi
 GO
@@ -682,19 +737,18 @@ EXEC QUEMA2.migrar_local_bi
 GO
 EXEC QUEMA2.migrar_tipo_paquete_bi
 GO
---EXEC QUEMA2.migrar_mensajeria_bi
-GO
---EXEC QUEMA2.migrar_tipo_reclamo_bi
-GO
---EXEC QUEMA2.migrar_reclamo_bi
-GO
 EXEC QUEMA2.migrar_dia_bi
 GO
 EXEC QUEMA2.migrar_tiempo_bi
 GO
 EXEC QUEMA2.migrar_pedido_bi
 GO
-
+--EXEC QUEMA2.migrar_mensajeria_bi
+GO
+--EXEC QUEMA2.migrar_tipo_reclamo_bi
+GO
+--EXEC QUEMA2.migrar_reclamo_bi
+GO
 -- VISTAS AUXILIARES
 	GO
 	CREATE VIEW QUEMA2.dia_hora_x_localidad_x_categoria
@@ -738,7 +792,7 @@ GO
 	ON ped.id_pedido = env.id_pedido
 	JOIN QUEMA2.local local
 	ON local.id_local = ped.id_local
-	join QUEMA2.rango_etario_bi re
+	join QUEMA2.rango_etario_repartidor_bi re
 	ON DATEDIFF(YEAR, repar.fecha_nacimiento, GETDATE()) <= re.fecha_limite
 	and DATEDIFF(YEAR, repar.fecha_nacimiento, GETDATE()) >= re.fecha_base
 	GROUP BY local.id_localidad, re.fecha_base,re.fecha_limite, MONTH(ped.fecha_pedido)
@@ -759,7 +813,7 @@ GO
 	ON mensaj.id_repartidor = repar.id_repartidor
 	JOIN QUEMA2.direcciones_mensajeria dm
 	ON dm.id_direcciones_mensajeria = mensaj.id_direcciones_mensajeria 
-	join QUEMA2.rango_etario_bi re
+	join QUEMA2.rango_etario_repartidor_bi re
 	ON DATEDIFF(YEAR, repar.fecha_nacimiento, GETDATE()) <= re.fecha_limite
 	and DATEDIFF(YEAR, repar.fecha_nacimiento, GETDATE()) >= re.fecha_base
 	GROUP BY dm.id_localidad, re.fecha_base,re.fecha_limite, MONTH(mensaj.fecha_pedido)
@@ -782,7 +836,7 @@ GO
 	AND mensaj.id_estado_mensajeria = em.id_estado_mensajeria
 	JOIN QUEMA2.direcciones_mensajeria dm
 	ON dm.id_direcciones_mensajeria = mensaj.id_direcciones_mensajeria
-	join QUEMA2.rango_etario_bi re
+	join QUEMA2.rango_etario_repartidor_bi re
 	ON DATEDIFF(YEAR, repar.fecha_nacimiento, GETDATE()) <= re.fecha_limite
 	and DATEDIFF(YEAR, repar.fecha_nacimiento, GETDATE()) >= re.fecha_base
 	GROUP BY dm.id_localidad, re.fecha_base,re.fecha_limite, MONTH(mensaj.fecha_pedido)
@@ -809,7 +863,7 @@ GO
 	and ped.id_estado_pedido = ep.id_estado_pedido
 	JOIN QUEMA2.local local
 	ON local.id_local = ped.id_local
-	join QUEMA2.rango_etario_bi re
+	join QUEMA2.rango_etario_repartidor_bi re
 	ON DATEDIFF(YEAR, repar.fecha_nacimiento, GETDATE()) <= re.fecha_limite
 	and DATEDIFF(YEAR, repar.fecha_nacimiento, GETDATE()) >= re.fecha_base
 	GROUP BY local.id_localidad, re.fecha_base,re.fecha_limite, MONTH(ped.fecha_pedido)
