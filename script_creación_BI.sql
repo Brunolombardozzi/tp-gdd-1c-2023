@@ -254,7 +254,7 @@ CREATE TABLE [QUEMA2].[pedido_bi] (
 );
 
 CREATE TABLE [QUEMA2].[reclamo_bi] (
-  [reclamo_bi_id] int,
+  [reclamo_bi_id] int IDENTITY(1,1),
   [tipo_reclamo_bi_id] int,
   [estado_reclamo_bi_id] int,
   [rango_horario_bi_id] int,
@@ -425,42 +425,42 @@ GO
 CREATE PROCEDURE [QUEMA2].migrar_rango_etario_usuario_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) VALUES(0,25)
-	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) VALUES(25,35)
-	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) VALUES(35,55)
-	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) VALUES(55,75)
+	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) select 0,25
+	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) select 25,35
+	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) select 35,55
+	INSERT INTO [QUEMA2].rango_etario_usuario_bi(fecha_base, fecha_limite) select 55,75
 	IF @@ERROR != 0
-	PRINT('SP RANGO ETARIO BI FAIL!')
+	PRINT('SP RANGO ETARIO USUARIO BI FAIL!')
 	ELSE
-	PRINT('SP RANGO ETARIO BI OK!')
+	PRINT('SP RANGO ETARIO USUARIO BI OK!')
 END
 
 GO 
 CREATE PROCEDURE [QUEMA2].migrar_rango_etario_repartidor_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) VALUES(0,25)
-	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) VALUES(25,35)
-	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) VALUES(35,55)
-	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) VALUES(55,75)
+	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) select 0,25
+	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) select 25,35
+	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) select 35,55
+	INSERT INTO [QUEMA2].rango_etario_repartidor_bi(fecha_base, fecha_limite) select 55,75
 	IF @@ERROR != 0
-	PRINT('SP RANGO ETARIO BI FAIL!')
+	PRINT('SP RANGO ETARIO REPARTIDOR BI FAIL!')
 	ELSE
-	PRINT('SP RANGO ETARIO BI OK!')
+	PRINT('SP RANGO ETARIO REPARTIDOR BI OK!')
 END
 
 GO 
 CREATE PROCEDURE [QUEMA2].migrar_rango_etario_operador_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) VALUES(0,25)
-	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) VALUES(25,35)
-	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) VALUES(35,55)
-	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) VALUES(55,75)
+	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) select 0,25
+	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) select 25,35
+	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) select 35,55
+	INSERT INTO [QUEMA2].rango_etario_operador_bi(fecha_base, fecha_limite) select 55,75
 	IF @@ERROR != 0
-	PRINT('SP RANGO ETARIO BI FAIL!')
+	PRINT('SP RANGO ETARIO OPERADOR BI FAIL!')
 	ELSE
-	PRINT('SP RANGO ETARIO BI OK!')
+	PRINT('SP RANGO ETARIO OPERADOR BI OK!')
 END
 
 
@@ -700,7 +700,7 @@ BEGIN
 		rh.rango_horario_bi_id,
 		tiempo.tiempo_bi_id
 	FROM [QUEMA2].reclamo rec
-	JOIN QUEMA2.tiempo_bi tiempo
+	RIGHT JOIN QUEMA2.tiempo_bi tiempo
 	ON tiempo.anio = YEAR(rec.fecha)
 	AND tiempo.mes = MONTH(rec.fecha)
 	JOIN QUEMA2.rango_horario_bi rh
@@ -710,12 +710,12 @@ BEGIN
 	ON op.id_operador = rec.id_operador
 	JOIN QUEMA2.rango_etario_operador_bi reo
 	ON DATEDIFF(YEAR, op.fecha_nacimiento, GETDATE()) <= reo.fecha_limite
-	and DATEDIFF(YEAR, op.fecha_nacimiento, GETDATE()) >= reo.fecha_base
+	and DATEDIFF(YEAR, op.fecha_nacimiento, GETDATE()) > reo.fecha_base
 	JOIN QUEMA2.tipo_reclamo_bi tr
 	ON tr.tipo_reclamo_bi_id = rec.id_tipo_reclamo
 	JOIN QUEMA2.estado_reclamo_bi er
 	ON er.estado_reclamo_bi_id = rec.id_estado_reclamo
-	GROUP BY 	tr.tipo_reclamo_bi_id, er.estado_reclamo_bi_id,reo.rango_etario_operador_bi_id,rh.rango_horario_bi_id,tiempo.tiempo_bi_id
+	GROUP BY tr.tipo_reclamo_bi_id, er.estado_reclamo_bi_id,reo.rango_etario_operador_bi_id,rh.rango_horario_bi_id,tiempo.tiempo_bi_id
 	IF @@ERROR != 0
 	PRINT('SP RECLAMO BI FAIL!')
 	ELSE
@@ -761,7 +761,7 @@ EXEC QUEMA2.migrar_rango_etario_usuario_bi
 GO
 EXEC QUEMA2.migrar_rango_etario_repartidor_bi
 GO
-EXEC QUEMA2.migrar_rango_etario_usuario_bi
+EXEC QUEMA2.migrar_rango_etario_operador_bi
 GO
 EXEC QUEMA2.migrar_rango_horario_bi
 GO
