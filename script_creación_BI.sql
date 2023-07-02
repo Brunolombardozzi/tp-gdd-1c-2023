@@ -158,6 +158,11 @@ CREATE TABLE [QUEMA2].[estado_pedido_bi] (
   PRIMARY KEY ([estado_pedido_bi_id])
 );
 
+CREATE TABLE [QUEMA2].[estado_reclamo_bi] (
+  [estado_reclamo_bi_id] int,
+  [estado_reclamo] nvarchar(50),
+  PRIMARY KEY ([estado_reclamo_bi_id])
+);
 
 CREATE TABLE [QUEMA2].[tiempo_bi] (
   [tiempo_bi_id] int IDENTITY(1,1),
@@ -231,7 +236,7 @@ CREATE TABLE [QUEMA2].[pedido_bi] (
   CONSTRAINT [FK_dia_bi.dia_bi_id]
     FOREIGN KEY ([dia_bi_id])
       REFERENCES [QUEMA2].[dia_bi]([dia_bi_id]),
-  CONSTRAINT [FK_tiempo_bi.tiempo_bi_id]
+  CONSTRAINT [FK_tiempo_bi_ped.tiempo_bi_id]
     FOREIGN KEY ([tiempo_bi_id])
       REFERENCES [QUEMA2].[tiempo_bi]([tiempo_bi_id]),
   CONSTRAINT [FK_movilidad_bi.movilidad_bi_id]
@@ -252,22 +257,25 @@ CREATE TABLE [QUEMA2].[reclamo_bi] (
   [reclamo_bi_id] int,
   [tipo_reclamo_bi_id] int,
   [estado_reclamo_bi_id] int,
-  [id_operador] int,
-  [id_usuario] int,
-  [pedido_bi_id] int,
-  [nro_reclamo] decimal(18,2),
-  [descripcion] nvarchar(255) ,
-  [fecha_solucion] datetime2(3),
-  [calificacion] int,
-  [solucion] nvarchar(255),
-  [fecha_reclamo] datetime,
+  [rango_horario_bi_id] int,
+  [rango_etario_operador_bi_id] int,
+  [tiempo_bi_id] int
   PRIMARY KEY ([reclamo_bi_id]),
   CONSTRAINT [FK_reclamo_bi.tipo_reclamo_bi_id]
     FOREIGN KEY ([tipo_reclamo_bi_id])
       REFERENCES [QUEMA2].[tipo_reclamo_bi]([tipo_reclamo_bi_id]),
-  CONSTRAINT [FK_reclamo_bi.pedido_bi_id]
-    FOREIGN KEY ([pedido_bi_id])
-      REFERENCES [QUEMA2].[pedido_bi]([pedido_bi_id])
+  CONSTRAINT [FK_reclamo_bi.estado_reclamo_bi_id]
+    FOREIGN KEY ([estado_reclamo_bi_id])
+      REFERENCES [QUEMA2].[estado_reclamo_bi]([estado_reclamo_bi_id]),
+  CONSTRAINT [FK_tiempo_bi.tiempo_bi_id]
+    FOREIGN KEY ([tiempo_bi_id])
+      REFERENCES [QUEMA2].[tiempo_bi]([tiempo_bi_id]),
+  CONSTRAINT [FK_rango_etario_operador_bi.rango_horario_operador_bi_id]
+    FOREIGN KEY ([rango_etario_operador_bi_id])
+      REFERENCES [QUEMA2].[rango_etario_operador_bi]([rango_etario_operador_bi_id]),
+  CONSTRAINT [FK_rango_horario_reclamo_bi.rango_horario_bi_id]
+    FOREIGN KEY ([rango_horario_bi_id])
+      REFERENCES [QUEMA2].[rango_horario_bi]([rango_horario_bi_id])
 );
 
 
@@ -395,6 +403,21 @@ BEGIN
 	PRINT('SP ESTADO PEDIDO BI FAIL!')
 	ELSE
 	PRINT('SP ESTADO PEDIDO BI OK!')
+END
+
+GO
+CREATE PROCEDURE [QUEMA2].migrar_estado_reclamo_bi
+AS 
+BEGIN
+	INSERT INTO [QUEMA2].estado_reclamo_bi(estado_reclamo_bi_id,estado_reclamo)
+	SELECT DISTINCT
+		id_estado_reclamo,
+		estado_reclamo
+	FROM [QUEMA2].estado_reclamo
+	IF @@ERROR != 0
+	PRINT('SP ESTADO RECLAMO BI FAIL!')
+	ELSE
+	PRINT('SP ESTADO RECLAMO BI OK!')
 END
 
 
@@ -617,8 +640,9 @@ BEGIN
 	AND tiempo.mes = MONTH(ped.fecha_pedido)
 	JOIN QUEMA2.tipo_local_bi tl
 	ON tl.tipo_local_bi_id = loc.tipo_local_bi_id
-	GROUP BY rh.rango_horario_bi_id, reu.rango_etario_usuario_bi_id, rer.rango_etario_repartidor_bi_id, lxp.localidad_x_provincia_bi_id, mp.medio_pago_bi_id,
-	mov.movilidad_bi_id, ep.estado_pedido_bi_id, dia.dia_bi_id, tiempo.tiempo_bi_id, tl.tipo_local_bi_id
+	GROUP BY rh.rango_horario_bi_id, reu.rango_etario_usuario_bi_id, rer.rango_etario_repartidor_bi_id,
+	lxp.localidad_x_provincia_bi_id, mp.medio_pago_bi_id,mov.movilidad_bi_id, ep.estado_pedido_bi_id, 
+	dia.dia_bi_id, tiempo.tiempo_bi_id, tl.tipo_local_bi_id
 	IF @@ERROR != 0
 	PRINT('SP PEDIDO BI FAIL!')
 	ELSE
@@ -667,21 +691,31 @@ GO
 CREATE PROCEDURE [QUEMA2].migrar_reclamo_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].reclamo_bi(reclamo_bi_id,tipo_reclamo_bi_id,estado_reclamo_bi_id,id_operador, nro_reclamo
-	,descripcion,fecha_solucion, calificacion, solucion, fecha_reclamo, pedido_bi_id)
+	INSERT INTO [QUEMA2].reclamo_bi(tipo_reclamo_bi_id,estado_reclamo_bi_id,
+	rango_etario_operador_bi_id,rango_horario_bi_id,tiempo_bi_id)
 	SELECT DISTINCT
-		id_reclamo,
-		id_tipo_reclamo,
-		id_estado_reclamo,
-		id_operador,
-		nro_reclamo,
-		descripcion,
-		fecha_solucion,
-		calificacion,
-		solucion,
-		fecha,
-		id_pedido
-	FROM [QUEMA2].reclamo 
+		tr.tipo_reclamo_bi_id,
+		er.estado_reclamo_bi_id,
+		reo.rango_etario_operador_bi_id,
+		rh.rango_horario_bi_id,
+		tiempo.tiempo_bi_id
+	FROM [QUEMA2].reclamo rec
+	JOIN QUEMA2.tiempo_bi tiempo
+	ON tiempo.anio = YEAR(rec.fecha)
+	AND tiempo.mes = MONTH(rec.fecha)
+	JOIN QUEMA2.rango_horario_bi rh
+	ON DATENAME(HOUR, rec.fecha) <= rh.hora_hasta
+	and DATENAME(HOUR, rec.fecha) >= rh.hora_desde
+	JOIN QUEMA2.operador op
+	ON op.id_operador = rec.id_operador
+	JOIN QUEMA2.rango_etario_operador_bi reo
+	ON DATEDIFF(YEAR, op.fecha_nacimiento, GETDATE()) <= reo.fecha_limite
+	and DATEDIFF(YEAR, op.fecha_nacimiento, GETDATE()) >= reo.fecha_base
+	JOIN QUEMA2.tipo_reclamo_bi tr
+	ON tr.tipo_reclamo_bi_id = rec.id_tipo_reclamo
+	JOIN QUEMA2.estado_reclamo_bi er
+	ON er.estado_reclamo_bi_id = rec.id_estado_reclamo
+	GROUP BY 	tr.tipo_reclamo_bi_id, er.estado_reclamo_bi_id,reo.rango_etario_operador_bi_id,rh.rango_horario_bi_id,tiempo.tiempo_bi_id
 	IF @@ERROR != 0
 	PRINT('SP RECLAMO BI FAIL!')
 	ELSE
@@ -745,9 +779,11 @@ EXEC QUEMA2.migrar_pedido_bi
 GO
 --EXEC QUEMA2.migrar_mensajeria_bi
 GO
---EXEC QUEMA2.migrar_tipo_reclamo_bi
+EXEC QUEMA2.migrar_estado_reclamo_bi
 GO
---EXEC QUEMA2.migrar_reclamo_bi
+EXEC QUEMA2.migrar_tipo_reclamo_bi
+GO
+EXEC QUEMA2.migrar_reclamo_bi
 GO
 -- VISTAS AUXILIARES
 	GO
