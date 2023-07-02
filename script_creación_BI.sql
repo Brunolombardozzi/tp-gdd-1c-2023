@@ -280,25 +280,14 @@ CREATE TABLE [QUEMA2].[reclamo_bi] (
 
 
 CREATE TABLE [QUEMA2].[mensajeria_bi] (
-  [mensajeria_bi_id] int,
-  [id_repartidor] int,
-  [id_usuario] int,
+  [mensajeria_bi_id] int IDENTITY(1,1),
   [medio_de_pago_bi_id] int,
   [estado_mensajeria_bi_id] int,
   [tipo_paquete_bi_id] int,
-  [nro_envio_mensajeria] decimal(18,2),
-  [id_direcciones_mensjaeria] int,
-  [distancia_km] decimal(18,2),
-  [valor_asegurado] decimal(18,2),
-  [observaciones] nvarchar(255) ,
-  [precio_seguro] decimal(18,2),
-  [precio_total] decimal(18,2),
-  [fecha_pedido] datetime2(3),
-  [fecha_entrega] datetime2(3),
-  [precio_envio] decimal(18,2),
-  [propina] decimal(18,2),
-  [tiempo_estimado_entrega] decimal(18,2),
-  [calificacion] decimal(18,0),
+  [movilidad_bi_id] int,
+  [rango_etario_repartidor_bi_id] int,
+  [tiempo_bi_id] int,
+  [dia_bi_id] int,
   PRIMARY KEY ([mensajeria_bi_id]),
   CONSTRAINT [FK_mensajeria_bi.tipo_paquete_bi_id ]
     FOREIGN KEY ([tipo_paquete_bi_id])
@@ -308,7 +297,19 @@ CREATE TABLE [QUEMA2].[mensajeria_bi] (
       REFERENCES [QUEMA2].[estado_mensajeria_bi]([estado_mensajeria_bi_id]),
   CONSTRAINT [FK_mensajeria_bi.medio_de_pago_bi_id]
     FOREIGN KEY ([medio_de_pago_bi_id])
-      REFERENCES [QUEMA2].[medio_pago_bi]([medio_pago_bi_id])
+      REFERENCES [QUEMA2].[medio_pago_bi]([medio_pago_bi_id]),
+  CONSTRAINT [FK_mensajeria_bi.movilidad_bi_id]
+    FOREIGN KEY ([movilidad_bi_id])
+      REFERENCES [QUEMA2].[movilidad_bi]([movilidad_bi_id]),
+  CONSTRAINT [FK_mensajeria_bi.rango_etario_repartidor_bi_id]
+    FOREIGN KEY ([rango_etario_repartidor_bi_id])
+      REFERENCES [QUEMA2].[rango_etario_repartidor_bi]([rango_etario_repartidor_bi_id]),
+  CONSTRAINT [FK_mensajeria_bi.tiempo_bi_id]
+    FOREIGN KEY ([tiempo_bi_id])
+      REFERENCES [QUEMA2].[tiempo_bi]([tiempo_bi_id]),
+  CONSTRAINT [FK_mensajeria_bi.dia_bi_id]
+    FOREIGN KEY ([dia_bi_id])
+      REFERENCES [QUEMA2].[dia_bi]([dia_bi_id])
 );
 
 
@@ -655,30 +656,26 @@ GO
 CREATE PROCEDURE [QUEMA2].migrar_mensajeria_bi
 AS 
 BEGIN
-	INSERT INTO [QUEMA2].mensajeria_bi(mensajeria_bi_id, id_repartidor, id_usuario, medio_de_pago_bi_id, 
-	estado_mensajeria_bi_id, tipo_paquete_bi_id, nro_envio_mensajeria, id_direcciones_mensjaeria, distancia_km,
-	valor_asegurado, observaciones, precio_seguro, precio_total, fecha_pedido, fecha_entrega,
-	propina, tiempo_estimado_entrega, calificacion)
+	INSERT INTO [QUEMA2].mensajeria_bi(medio_de_pago_bi_id, estado_mensajeria_bi_id, 
+	tipo_paquete_bi_id, movilidad_bi_id, tiempo_bi_id, rango_etario_repartidor_bi_id)
 	SELECT DISTINCT
-		mensaj.id_mensajeria,
-		mensaj.id_repartidor,
-		mensaj.id_usuario,
 		mensaj.id_medio_de_pago,
 		mensaj.id_estado_mensajeria,
 		mensaj.id_tipo_paquete,
-		mensaj.nro_envio_mensajeria,
-		mensaj.id_direcciones_mensajeria,
-		mensaj.distancia_km,
-		mensaj.valor_asegurado,
-		mensaj.observaciones,
-		mensaj.precio_seguro,
-		mensaj.precio_total,
-		mensaj.fecha_pedido,
-		mensaj.fecha_entrega,
-		mensaj.propina,
-		mensaj.tiempo_estimado_entrega,
-		mensaj.calificacion
+		mov.movilidad_bi_id,
+		tiempo.tiempo_bi_id,
+		rer.rango_etario_repartidor_bi_id
 	FROM [QUEMA2].mensajeria mensaj
+	JOIN QUEMA2.repartidor rep
+	ON rep.id_repartidor = mensaj.id_repartidor
+	JOIN QUEMA2.movilidad_bi mov
+	ON mov.movilidad_bi_id = rep.id_movilidad
+	JOIN QUEMA2.tiempo_bi tiempo
+	ON tiempo.anio = YEAR(mensaj.fecha_pedido)
+	AND tiempo.mes = MONTH(mensaj.fecha_pedido)
+	JOIN QUEMA2.rango_etario_repartidor_bi rer
+	ON DATEDIFF(YEAR, rep.fecha_nacimiento, GETDATE()) <= rer.fecha_limite
+	and DATEDIFF(YEAR, rep.fecha_nacimiento, GETDATE()) >= rer.fecha_base
 	IF @@ERROR != 0
 	PRINT('SP MENSAJERIA BI FAIL!')
 	ELSE
@@ -737,7 +734,7 @@ BEGIN
 	(SELECT
 		YEAR(fecha_pedido), 
 		MONTH(fecha_pedido)
-	FROM [QUEMA2].mensajeria_bi
+	FROM [QUEMA2].mensajeria
 	GROUP BY YEAR(fecha_pedido), MONTH(fecha_pedido))
 	IF @@ERROR != 0
 	PRINT('SP TIEMPO BI FAIL!')
@@ -775,13 +772,13 @@ EXEC QUEMA2.migrar_dia_bi
 GO
 EXEC QUEMA2.migrar_tiempo_bi
 GO
-EXEC QUEMA2.migrar_pedido_bi
-GO
---EXEC QUEMA2.migrar_mensajeria_bi
-GO
 EXEC QUEMA2.migrar_estado_reclamo_bi
 GO
 EXEC QUEMA2.migrar_tipo_reclamo_bi
+GO
+EXEC QUEMA2.migrar_pedido_bi
+GO
+EXEC QUEMA2.migrar_mensajeria_bi
 GO
 EXEC QUEMA2.migrar_reclamo_bi
 GO
